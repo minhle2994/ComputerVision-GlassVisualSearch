@@ -13,6 +13,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.JsonFactory;
+import com.google.api.client.json.jackson2.JacksonFactory;
+
 /**
  * An {@link Activity} showing a tuggable "Hello World!" card.
  * <p/>
@@ -24,6 +29,10 @@ import android.widget.AdapterView;
  * @see <a href="https://developers.google.com/glass/develop/gdk/touch">GDK Developer Guide</a>
  */
 public class MainActivity extends Activity {
+
+    private static final String API_KEY = "cNSiII2zZzS_TC9D2D0ZVw";
+    static final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();
+    static final JsonFactory JSON_FACTORY = new JacksonFactory();
 
     /**
      * {@link CardScrollView} to use as the main content view.
@@ -76,6 +85,12 @@ public class MainActivity extends Activity {
             }
         });
         setContentView(mCardScroller);
+
+        try {
+            getDescriptionForImageURL("https://i.ytimg.com/vi/KY4IzMcjX3Y/maxresdefault.jpg");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -98,6 +113,28 @@ public class MainActivity extends Activity {
 
         card.setText(R.string.hello_world);
         return card.getView();
+    }
+
+    protected String getDescriptionForImageURL(String url) throws Exception{
+        CSApi api = new CSApi(
+                HTTP_TRANSPORT,
+                JSON_FACTORY,
+                API_KEY
+        );
+        CSPostConfig imageToPost = CSPostConfig.newBuilder()
+                .withRemoteImageUrl(url)
+                .build();
+
+        CSPostResult portResult = api.postImage(imageToPost);
+
+        System.out.println("Post result: " + portResult);
+
+        Thread.sleep(30000);
+
+        CSGetResult scoredResult = api.getImage(portResult);
+
+        System.out.println(scoredResult);
+        return scoredResult.getName();
     }
 
 }
