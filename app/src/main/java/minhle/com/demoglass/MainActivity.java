@@ -17,7 +17,6 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 
-import com.google.android.glass.widget.CardBuilder;
 import com.google.android.glass.content.Intents;
 import com.google.android.glass.touchpad.Gesture;
 import com.google.android.glass.touchpad.GestureDetector;
@@ -65,17 +64,6 @@ public class MainActivity extends Activity {
 
         // Set the view
         this.setContentView(cameraView);
-    }
-
-    /**
-     * Builds a Glass styled "Hello World!" view using the {@link CardBuilder} class.
-     */
-    private View buildView() {
-        CardBuilder card = new CardBuilder(this, CardBuilder.Layout.TEXT);
-        card.setText(mName);
-
-
-        return card.getView();
     }
 
     /*
@@ -300,13 +288,12 @@ public class MainActivity extends Activity {
                 Log.e("RESPONSE: ", response.toString());
 
                 try {
-                    Thread.sleep(4000);
+                    Thread.sleep(10000);
                     String token = response.getString("token");
                     Log.e("TOKEN STR: ", token);
 
                     AsyncHttpClient client_get = new AsyncHttpClient();
                     client_get.setTimeout(500000);
-
                     client_get.addHeader("Authorization", "CloudSight cNSiII2zZzS_TC9D2D0ZVw");
                     client_get.get("http://api.cloudsightapi.com/image_responses/" + token, null, new JsonHttpResponseHandler() {
                         @Override
@@ -318,8 +305,7 @@ public class MainActivity extends Activity {
 //                                String result = response.getString("name");
                                 String status = response.getString("status");
                                 String name = response.getString("name");
-                                mName = name;
-                                mView = buildView();
+
                                 Log.e("STATUS: ", status);
 
                             } catch (JSONException e) {
