@@ -17,6 +17,7 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 
+import com.google.android.glass.widget.CardBuilder;
 import com.google.android.glass.content.Intents;
 import com.google.android.glass.touchpad.Gesture;
 import com.google.android.glass.touchpad.GestureDetector;
@@ -64,6 +65,17 @@ public class MainActivity extends Activity {
 
         // Set the view
         this.setContentView(cameraView);
+    }
+
+    /**
+     * Builds a Glass styled "Hello World!" view using the {@link CardBuilder} class.
+     */
+    private View buildView() {
+        CardBuilder card = new CardBuilder(this, CardBuilder.Layout.TEXT);
+        card.setText(mName);
+
+
+        return card.getView();
     }
 
     /*
@@ -155,7 +167,11 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         // Handle photos
+        Log.e("CODE", Integer.toString(resultCode));
+        Log.e("REQUEST CODE", Integer.toString(requestCode));
+        super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == TAKE_PICTURE_REQUEST && resultCode == RESULT_OK) {
+            Log.e("OK ", Integer.toString(requestCode));
             String picturePath = data.getStringExtra(Intents.EXTRA_PICTURE_FILE_PATH);
             processPictureWhenReady(picturePath);
         }
@@ -166,7 +182,7 @@ public class MainActivity extends Activity {
             processPictureWhenReady(picturePath);
         }
 
-        super.onActivityResult(requestCode, resultCode, data);
+
     }
 
     /**
@@ -177,7 +193,9 @@ public class MainActivity extends Activity {
     private void processPictureWhenReady(final String picturePath) {
         final File pictureFile = new File(picturePath);
         if (pictureFile.exists()) {
+            Log.e("FILE EXIST", picturePath);
             // The picture is ready; process it.
+//            uploadImage(pictureFile);
             BitmapFactory.Options options = new BitmapFactory.Options();
             options.inPreferredConfig = Bitmap.Config.ARGB_8888;
             Bitmap bitmap = BitmapFactory.decodeFile(picturePath, options);
@@ -207,9 +225,10 @@ public class MainActivity extends Activity {
             // image and a progress indicator).
 
             final File parentDirectory = pictureFile.getParentFile();
-            FileObserver observer = new FileObserver(parentDirectory.getPath()) {
-                // Protect against additional pending events after CLOSE_WRITE is
-                // handled.
+            FileObserver observer = new FileObserver(parentDirectory.getPath(),
+                    FileObserver.CLOSE_WRITE | FileObserver.MOVED_TO) {
+                // Protect against additional pending events after CLOSE_WRITE
+                // or MOVED_TO is handled.
                 private boolean isFileWritten;
 
                 @Override
@@ -218,7 +237,7 @@ public class MainActivity extends Activity {
                         // For safety, make sure that the file that was created in
                         // the directory is actually the one that we're expecting.
                         File affectedFile = new File(parentDirectory, path);
-                        isFileWritten = (event == FileObserver.CLOSE_WRITE && affectedFile.equals(pictureFile));
+                        isFileWritten = affectedFile.equals(pictureFile);
 
                         if (isFileWritten) {
                             stopWatching();
@@ -262,15 +281,110 @@ public class MainActivity extends Activity {
         RequestParams params = new RequestParams();
         String url;
         try {
-            params.put("upload", image);
+            params.put("image_request[image]", image);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
-        Log.e("Upload image: ", "");
+
+        params.put("image_request[locale]", "vi-VN");
+        Log.e("Upload image: ", image.getAbsolutePath());
+        final AsyncHttpClient client = new AsyncHttpClient();
+        client.setTimeout(500000);
+//        client.setConnectTimeout(500000);
+//        client.setResponseTimeout(10000);
+        client.addHeader("Authorization", "CloudSight cNSiII2zZzS_TC9D2D0ZVw");
+        client.post("https://api.cloudsightapi.com/image_requests", params, new JsonHttpResponseHandler() {
+            @Override
+            public void onSuccess(int statusCode, cz.msebera.android.httpclient.Header[] headers,
+                                  org.json.JSONObject response) {
+                Log.e("RESPONSE: ", response.toString());
+
+                try {
+                    Thread.sleep(4000);
+                    String token = response.getString("token");
+                    Log.e("TOKEN STR: ", token);
+
+                    AsyncHttpClient client_get = new AsyncHttpClient();
+                    client_get.setTimeout(500000);
+
+                    client_get.addHeader("Authorization", "CloudSight cNSiII2zZzS_TC9D2D0ZVw");
+                    client_get.get("http://api.cloudsightapi.com/image_responses/" + token, null, new JsonHttpResponseHandler() {
+                        @Override
+                        public void onSuccess(int statusCode, cz.msebera.android.httpclient.Header[] headers,
+                                              org.json.JSONObject response) {
+                            Log.e("RESPONSE: ", response.toString());
+
+                            try {
+//                                String result = response.getString("name");
+                                String status = response.getString("status");
+                                String name = response.getString("name");
+                                mName = name;
+                                mView = buildView();
+                                Log.e("STATUS: ", status);
+
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(int statusCode,
+                                              cz.msebera.android.httpclient.Header[] headers,
+                                              java.lang.Throwable throwable,
+                                              org.json.JSONObject errorResponse) {
+                            // called when response HTTP status is "4XX" (eg. 401, 403, 404)
+                            Log.e("Error: ", Integer.toString(statusCode));
+                        }
+                    });
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onFailure(int statusCode,
+                                  cz.msebera.android.httpclient.Header[] headers,
+                                  java.lang.Throwable throwable,
+                                  org.json.JSONObject errorResponse) {
+                // called when response HTTP status is "4XX" (eg. 401, 403, 404)
+                Log.e("Error: ", Integer.toString(statusCode));
+                Log.e("Error: ", errorResponse.toString());
+            }
+
+            public void onFailure(int statusCode, cz.msebera.android.httpclient.Header[] headers, String error, java.lang.Throwable throwable){
+                Log.e("Error: ", Integer.toString(statusCode));
+                Log.e("Error: ", error);
+            }
+        });
+    }
+
+    public Bitmap imageResize(Bitmap bitmap,int newWidth,int newHeight) {
+        Bitmap scaledBitmap = Bitmap.createBitmap(newWidth, newHeight, Bitmap.Config.ARGB_8888);
+
+        float ratioX = newWidth / (float) bitmap.getWidth();
+        float ratioY = newHeight / (float) bitmap.getHeight();
+        float middleX = newWidth / 2.0f;
+        float middleY = newHeight / 2.0f;
+
+        Matrix scaleMatrix = new Matrix();
+        scaleMatrix.setScale(ratioX, ratioY, middleX, middleY);
+
+        Canvas canvas = new Canvas(scaledBitmap);
+        canvas.setMatrix(scaleMatrix);
+        canvas.drawBitmap(bitmap, middleX - bitmap.getWidth() / 2, middleY - bitmap.getHeight() / 2, new Paint(Paint.FILTER_BITMAP_FLAG));
+
+        return scaledBitmap;
+    }
+
+    protected void getDescriptionForImageURL(String url) {
+        RequestParams params = new RequestParams();
+        params.put("image_request[image]", "http://channel.vcmedia.vn/thumb_w/640/prupload/441/2015/11/img20151130093735510.jpg");
 
         AsyncHttpClient client = new AsyncHttpClient();
         client.setConnectTimeout(500000);
-        client.post("http://uploads.im/api", params, new JsonHttpResponseHandler() {
+        client.post("https://api.cloudsightapi.com/image_requests", params, new JsonHttpResponseHandler() {
             @Override
             public void onSuccess(int statusCode, cz.msebera.android.httpclient.Header[] headers,
                                   org.json.JSONObject response) {
@@ -301,54 +415,5 @@ public class MainActivity extends Activity {
                 }
             }
         });
-    }
-
-    public Bitmap imageResize(Bitmap bitmap,int newWidth,int newHeight) {
-        Bitmap scaledBitmap = Bitmap.createBitmap(newWidth, newHeight, Bitmap.Config.ARGB_8888);
-
-        float ratioX = newWidth / (float) bitmap.getWidth();
-        float ratioY = newHeight / (float) bitmap.getHeight();
-        float middleX = newWidth / 2.0f;
-        float middleY = newHeight / 2.0f;
-
-        Matrix scaleMatrix = new Matrix();
-        scaleMatrix.setScale(ratioX, ratioY, middleX, middleY);
-
-        Canvas canvas = new Canvas(scaledBitmap);
-        canvas.setMatrix(scaleMatrix);
-        canvas.drawBitmap(bitmap, middleX - bitmap.getWidth() / 2, middleY - bitmap.getHeight() / 2, new Paint(Paint.FILTER_BITMAP_FLAG));
-
-        return scaledBitmap;
-    }
-
-    protected String getDescriptionForImageURL(String url) throws Exception{
-
-        CSApi api = new CSApi(
-                HTTP_TRANSPORT,
-                JSON_FACTORY,
-                API_KEY
-        );
-        CSPostConfig imageToPost = CSPostConfig.newBuilder()
-                .withRemoteImageUrl(url)
-                .build();
-
-        CSPostResult portResult = api.postImage(imageToPost);
-
-        System.out.println("Post result: " + portResult);
-
-        Thread.sleep(30000);
-
-        CSGetResult scoredResult = api.getImage(portResult);
-
-        System.out.println(scoredResult);
-        if (scoredResult.getStatus().equals("completed")) {
-            mName = scoredResult.getName();
-//            mView = buildView();
-            Log.e("result: ", mName);
-            return scoredResult.getName();
-
-        } else {
-            return null;
-        }
     }
 }
