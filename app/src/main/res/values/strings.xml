@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">DemoGlass</string>
+    <string name="app_name">What is it?</string>
     <string name="title_activity_main">DemoGlass</string>
     <string name="hello_world">Hello world!</string>
 </resources>
