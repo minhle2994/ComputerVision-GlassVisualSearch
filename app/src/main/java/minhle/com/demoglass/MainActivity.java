@@ -3,15 +3,7 @@ package minhle.com.demoglass;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.Matrix;
-import android.graphics.Paint;
-import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
-import android.os.FileObserver;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -21,23 +13,6 @@ import android.view.View;
 import com.google.android.glass.content.Intents;
 import com.google.android.glass.touchpad.Gesture;
 import com.google.android.glass.touchpad.GestureDetector;
-import com.google.api.client.googleapis.util.Utils;
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
-import com.loopj.android.http.AsyncHttpClient;
-import com.loopj.android.http.JsonHttpResponseHandler;
-import com.loopj.android.http.RequestParams;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 
 public class MainActivity extends Activity {
     private static final int TAKE_PICTURE_REQUEST = 1;
@@ -46,10 +21,7 @@ public class MainActivity extends Activity {
     private GestureDetector mGestureDetector = null;
     private CameraView cameraView = null;
     private static final String API_KEY = "cNSiII2zZzS_TC9D2D0ZVw";
-    static final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();
-    static final JsonFactory JSON_FACTORY = new JacksonFactory();
     private View mView;
-    private String mName="xxx";
 
     /*
      * (non-Javadoc)
@@ -118,31 +90,17 @@ public class MainActivity extends Activity {
                 if (cameraView != null) {
                     // Tap with a single finger for photo
                     if (gesture == Gesture.TAP) {
-//                        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-//                        startActivityForResult(intent, TAKE_PICTURE_REQUEST);
-                        File tempFile = null;
-                        try {
-                            tempFile = File.createTempFile("camera", ".png", getExternalCacheDir());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        String path = tempFile.getAbsolutePath();
-                        Uri uri = Uri.fromFile(tempFile);
-
-                        Intent cameraIntent=new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                        startActivityForResult(cameraIntent, CAMERA_REQUEST);
-
+                        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                        startActivityForResult(intent, TAKE_PICTURE_REQUEST);
                         return true;
                     }
                     // Tap with 2 fingers for video
                     else if (gesture == Gesture.TWO_TAP) {
-                        Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
-                        startActivityForResult(intent, TAKE_VIDEO_REQUEST);
-
+//                        Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
+//                        startActivityForResult(intent, TAKE_VIDEO_REQUEST);
                         return true;
                     }
                 }
-
                 return false;
             }
         });
@@ -155,11 +113,7 @@ public class MainActivity extends Activity {
      */
     @Override
     public boolean onGenericMotionEvent(MotionEvent event) {
-        if (mGestureDetector != null) {
-            return mGestureDetector.onMotionEvent(event);
-        }
-
-        return false;
+        return mGestureDetector != null && mGestureDetector.onMotionEvent(event);
     }
 
     /*
@@ -172,14 +126,14 @@ public class MainActivity extends Activity {
         Log.e("CODE", Integer.toString(resultCode));
         Log.e("REQUEST CODE", Integer.toString(requestCode));
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == CAMERA_REQUEST && resultCode == RESULT_OK) {
+        if (requestCode == TAKE_PICTURE_REQUEST && resultCode == RESULT_OK) {
             Log.e("OK ", Integer.toString(requestCode));
-            String picturePath = data.getStringExtra(Intents.EXTRA_PICTURE_FILE_PATH);
+            String picturePath = data.getStringExtra(Intents.EXTRA_THUMBNAIL_FILE_PATH);
             Bundle extras = data.getExtras();
-            Bitmap photo = (Bitmap) extras.get("data");
             Intent intent = new Intent(getApplicationContext(),ShowActivity.class);
             intent.putExtra("PATH",picturePath);
             startActivity(intent);
+            //finish();
         }
 
         // Handle videos
@@ -192,8 +146,6 @@ public class MainActivity extends Activity {
 
 
     }
-
-
 
     /**
      * Added but irrelevant
