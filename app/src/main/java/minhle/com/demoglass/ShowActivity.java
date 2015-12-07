@@ -134,6 +134,7 @@ public class ShowActivity extends Activity {
         }
 
         card.setText(mName);
+        card.setFootnote("Tap to back");
         return card.getView();
     }
 
