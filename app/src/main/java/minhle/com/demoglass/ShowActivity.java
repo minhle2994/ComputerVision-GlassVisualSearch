@@ -129,14 +129,14 @@ public class ShowActivity extends Activity {
     private View buildView() {
         Card card = new Card(this);
         if (resized!=null){
-            card.setImageLayout(Card.ImageLayout.LEFT);
+            card.setImageLayout(Card.ImageLayout.FULL);
             card.addImage(resized);
         }
 
         card.setText(mName);
+        card.setFootnote("tap to back");
         return card.getView();
     }
-
 
     public Bitmap imageResize(Bitmap bitmap,int newWidth,int newHeight) {
         Bitmap scaledBitmap = Bitmap.createBitmap(newWidth, newHeight, Bitmap.Config.ARGB_8888);
