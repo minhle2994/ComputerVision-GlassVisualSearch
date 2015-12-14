@@ -137,12 +137,12 @@ public class MainActivity extends Activity {
         }
 
         // Handle videos
-        if (requestCode == TAKE_VIDEO_REQUEST && resultCode == RESULT_OK) {
-            String picturePath = data.getStringExtra(Intents.EXTRA_VIDEO_FILE_PATH);
-            Intent intent = new Intent(getApplicationContext(),ShowActivity.class);
-            intent.putExtra("PATH",picturePath);
-            startActivity(intent);
-        }
+        // if (requestCode == TAKE_VIDEO_REQUEST && resultCode == RESULT_OK) {
+        //     String picturePath = data.getStringExtra(Intents.EXTRA_VIDEO_FILE_PATH);
+        //     Intent intent = new Intent(getApplicationContext(),ShowActivity.class);
+        //     intent.putExtra("PATH",picturePath);
+        //     startActivity(intent);
+        // }
 
 
     }
